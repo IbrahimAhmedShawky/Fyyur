@@ -39,6 +39,8 @@ class Venue(db.Model):
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    shows = db.relationship('NewShow', backref="venue", lazy=True)
+
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -53,6 +55,13 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    shows = db.relationship('NewShow', backref="artist", lazy=True)
+
+class NewShow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
     
 db.create_all()
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
@@ -89,27 +98,22 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  data = []
+  All_Venues = Venue.query.all()
+  for area in All_Venues:
+    area_venue = Venue.query.filter_by(state=area.state).filter_by(city=area.city).all()
+    area_data=[]
+    for v in area_venue:
+      area_data.append({
+        "id": Venue.id,
+        "name": Venue.name, 
+        "num_upcoming_shows": len(db.session.query(NewShow).filter(NewShow.venue_id==1).filter(NewShow.start_time>datetime.now()).all())
+      })
+    data.append({
+      "city": area.city,
+      "state": area.state, 
+      "venues": area_data
+    })  
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
